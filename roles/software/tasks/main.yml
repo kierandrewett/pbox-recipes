@@ -1,0 +1,82 @@
+---
+- name: Require a supported guest package family
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in software_packages
+    fail_msg: >-
+      {{ software_name | default('This recipe') }} supports
+      {{ software_packages.keys() | join(', ') }}; this guest is
+      {{ ansible_facts.distribution }} ({{ ansible_facts.os_family }}).
+
+- name: Install software packages
+  ansible.builtin.package:
+    name: "{{ software_packages[ansible_facts.os_family] }}"
+    state: present
+
+- name: Create the shared npm prefix
+  ansible.builtin.file:
+    path: /opt/pbox/npm
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: software_npm_packages | default([]) | length > 0
+
+- name: Check installed npm packages
+  ansible.builtin.command:
+    argv:
+      - npm
+      - list
+      - --global
+      - --prefix
+      - /opt/pbox/npm
+      - --depth=0
+      - "{{ item.name }}"
+  loop: "{{ software_npm_packages | default([]) }}"
+  register: npm_package_checks
+  changed_when: false
+  failed_when: false
+  when: software_npm_packages | default([]) | length > 0
+
+- name: Install missing npm packages in the shared prefix
+  ansible.builtin.command:
+    argv:
+      - npm
+      - install
+      - --global
+      - --prefix
+      - /opt/pbox/npm
+      - --no-fund
+      - --no-audit
+      - "{{ item.item.name }}{{ '@' + item.item.version if item.item.version is defined else '' }}"
+  loop: "{{ npm_package_checks.results | default([]) }}"
+  when:
+    - software_npm_packages | default([]) | length > 0
+    - item.rc != 0
+  changed_when: true
+
+- name: Publish npm command shims
+  ansible.builtin.file:
+    src: "/opt/pbox/npm/bin/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    state: link
+    force: true
+  loop: "{{ software_npm_bins | default([]) }}"
+  when: software_npm_bins | default([]) | length > 0
+
+- name: Publish shared npm path for interactive shells
+  ansible.builtin.copy:
+    dest: /etc/profile.d/pbox-npm.sh
+    content: |
+      # Managed by the pbox software recipes.
+      export PATH=/opt/pbox/npm/bin:$PATH
+    owner: root
+    group: root
+    mode: '0644'
+  when: software_npm_packages | default([]) | length > 0
+
+- name: Verify installed commands
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop: "{{ software_verify | default([]) }}"
+  changed_when: false

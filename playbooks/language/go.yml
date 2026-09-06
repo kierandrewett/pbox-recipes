@@ -1,0 +1,13 @@
+---
+- name: Install Go development tools
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: language/go
+      software_packages:
+        Debian: [golang]
+        Archlinux: [go]
+        RedHat: [golang]
+        Suse: [go]
+      software_verify: [[go, version]]

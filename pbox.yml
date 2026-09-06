@@ -42,3 +42,71 @@ recipes:
       - fedora-family
       - arch-family
       - suse-family
+
+  dev/base:
+    path: playbooks/dev/base.yml
+    description: Core command-line tools, compilers and build dependencies for development.
+    capabilities: [development/tools]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  browser/firefox:
+    path: playbooks/browser/firefox.yml
+    description: Install the Firefox desktop browser.
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  browser/chromium:
+    path: playbooks/browser/chromium.yml
+    description: Install the Chromium desktop browser.
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  language/python:
+    path: playbooks/language/python.yml
+    description: Install Python, pip, virtual environments and development headers.
+    capabilities: [development/python]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  language/node:
+    path: playbooks/language/node.yml
+    description: Install Node.js and npm.
+    capabilities: [development/javascript]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  language/rust:
+    path: playbooks/language/rust.yml
+    description: Install the Rust compiler, Cargo and formatting tools.
+    capabilities: [development/rust]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  language/go:
+    path: playbooks/language/go.yml
+    description: Install the Go compiler and toolchain.
+    capabilities: [development/go]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  language/java:
+    path: playbooks/language/java.yml
+    description: Install the OpenJDK 17 compiler and runtime.
+    capabilities: [development/java]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  ide/neovim:
+    path: playbooks/ide/neovim.yml
+    description: Install Neovim.
+    capabilities: [development/editor]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  agent/codex:
+    path: playbooks/agent/codex.yml
+    description: Install the OpenAI Codex coding agent CLI.
+    requires: [language/node]
+    capabilities: [development/agent]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  agent/claude-code:
+    path: playbooks/agent/claude-code.yml
+    description: Install the Claude Code coding agent CLI.
+    requires: [language/node]
+    capabilities: [development/agent]
+    supports: [debian-family, fedora-family, arch-family, suse-family]

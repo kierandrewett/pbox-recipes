@@ -1,0 +1,15 @@
+---
+- name: Install the OpenAI Codex CLI
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: agent/codex
+      software_packages:
+        Debian: [nodejs, npm]
+        Archlinux: [nodejs, npm]
+        RedHat: [nodejs, npm]
+        Suse: [nodejs, npm]
+      software_npm_packages: [{name: '@openai/codex'}]
+      software_npm_bins: [codex]
+      software_verify: [[node, --version], [codex, --version]]

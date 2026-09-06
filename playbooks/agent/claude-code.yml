@@ -1,0 +1,15 @@
+---
+- name: Install Claude Code
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: agent/claude-code
+      software_packages:
+        Debian: [nodejs, npm]
+        Archlinux: [nodejs, npm]
+        RedHat: [nodejs, npm]
+        Suse: [nodejs, npm]
+      software_npm_packages: [{name: '@anthropic-ai/claude-code'}]
+      software_npm_bins: [claude]
+      software_verify: [[node, --version], [claude, --version]]

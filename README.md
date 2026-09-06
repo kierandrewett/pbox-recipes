@@ -26,11 +26,19 @@ Debian container, verify startup and reconnection, and require a second Ansible
 apply to report zero changes. It uses no privileged container options or host
 display mounts and removes its own container on exit.
 
+Run `sh scripts/test-software.sh` to install the language and editor recipes in
+an isolated Debian container twice and verify that the second run is idempotent.
+
 | ID | Kind | Purpose |
 | --- | --- | --- |
 | `agent/health` | playbook | Verify the installed agent binary and its service or workspace supervisor. |
 | `workspace/layout` | playbook | Create the standard pbox project, scratch, and user-bin directories. |
 | `workspace-tools` | role | Install a small developer tool baseline and configure the pbox project directory. |
+| `dev/base` | playbook | Install common CLI tools, compilers and build dependencies. |
+| `browser/firefox`, `browser/chromium` | playbook | Install a desktop browser. |
+| `language/python`, `language/node`, `language/rust`, `language/go`, `language/java` | playbook | Install a language toolchain. |
+| `ide/neovim` | playbook | Install Neovim. |
+| `agent/codex`, `agent/claude-code` | playbook | Install a coding-agent CLI through a private npm prefix. |
 
 List and apply them with:
 
@@ -40,7 +48,16 @@ pbox recipe list
 pbox recipe apply agent/health --box-id pbx_...
 pbox recipe apply workspace/layout --box-id pbx_...
 pbox recipe apply workspace-tools --box-id pbx_...
+pbox recipe apply dev/base --box-id pbx_...
+pbox recipe apply language/rust --box-id pbx_...
+pbox recipe apply agent/codex --box-id pbx_...
 ```
+
+The recipes are deliberately composable. For example, apply `dev/base`,
+`language/rust`, `language/node`, `ide/neovim` and `agent/codex` separately so a
+box receives only the tools it needs. The coding-agent recipes install Node.js
+and npm as prerequisites and place npm packages under `/opt/pbox/npm`; command
+shims are published in `/usr/local/bin`.
 
 The recipes intentionally avoid installing or restarting `pbox-agent`. That service is part of the box control plane and is bootstrapped by `pbox new`; changing it from a recipe would remove the transport needed to run the recipe itself.
 

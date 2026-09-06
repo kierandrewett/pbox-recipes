@@ -1,0 +1,13 @@
+---
+- name: Install Chromium
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: browser/chromium
+      software_packages:
+        Debian: [chromium]
+        Archlinux: [chromium]
+        RedHat: [chromium]
+        Suse: [chromium]
+      software_verify: [[chromium, --version]]

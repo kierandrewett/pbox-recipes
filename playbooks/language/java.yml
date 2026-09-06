@@ -1,0 +1,13 @@
+---
+- name: Install Java development tools
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: language/java
+      software_packages:
+        Debian: [default-jdk]
+        Archlinux: [jdk17-openjdk]
+        RedHat: [java-17-openjdk-devel]
+        Suse: [java-17-openjdk-devel]
+      software_verify: [[java, -version], [javac, -version]]

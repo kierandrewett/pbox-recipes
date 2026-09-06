@@ -1,0 +1,13 @@
+---
+- name: Install Python development tools
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: language/python
+      software_packages:
+        Debian: [python3, python3-pip, python3-venv, python3-dev]
+        Archlinux: [python, python-pip]
+        RedHat: [python3, python3-pip, python3-devel]
+        Suse: [python311, python311-pip, python311-devel]
+      software_verify: [[python3, --version], [pip3, --version]]

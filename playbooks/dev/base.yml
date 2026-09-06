@@ -1,0 +1,13 @@
+---
+- name: Install the pbox development baseline
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: dev/base
+      software_packages:
+        Debian: [ca-certificates, curl, wget, git, jq, ripgrep, fd-find, fzf, tmux, tree, unzip, zip, build-essential, pkg-config, libssl-dev]
+        Archlinux: [ca-certificates, curl, wget, git, jq, ripgrep, fd, fzf, tmux, tree, unzip, zip, base-devel, pkgconf, openssl]
+        RedHat: [ca-certificates, curl, wget, git, jq, ripgrep, fd-find, fzf, tmux, tree, unzip, zip, '@development-tools', pkgconf-pkg-config, openssl-devel]
+        Suse: [ca-certificates, curl, wget, git, jq, ripgrep, fd, fzf, tmux, tree, unzip, zip, patterns-devel-base, pkg-config, libopenssl-devel]
+      software_verify: [[git, --version], [rg, --version], [tmux, -V]]

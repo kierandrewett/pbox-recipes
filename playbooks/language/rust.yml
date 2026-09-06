@@ -1,0 +1,13 @@
+---
+- name: Install Rust development tools
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: language/rust
+      software_packages:
+        Debian: [rustc, cargo, rustfmt]
+        Archlinux: [rust]
+        RedHat: [rust, cargo, rustfmt]
+        Suse: [rust, cargo]
+      software_verify: [[rustc, --version], [cargo, --version]]
