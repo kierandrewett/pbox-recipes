@@ -1,0 +1,53 @@
+---
+- name: Install Zed
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: ide/zed prerequisites
+      software_packages:
+        Debian: [curl, ca-certificates]
+        Archlinux: [curl, ca-certificates]
+        RedHat: [curl, ca-certificates]
+        Suse: [curl, ca-certificates]
+  tasks:
+    - name: Install Zed from the Arch package
+      ansible.builtin.command:
+        argv: [pacman, -Syu, --needed, --noconfirm, zed]
+      when: ansible_facts.os_family == 'Archlinux'
+      changed_when: true
+
+    - name: Require the pbox user for the upstream Zed installer
+      ansible.builtin.getent:
+        database: passwd
+        key: pbox
+      when: ansible_facts.os_family != 'Archlinux'
+
+    - name: Download the upstream Zed installer
+      ansible.builtin.get_url:
+        url: https://zed.dev/install.sh
+        dest: /tmp/pbox-zed-install.sh
+        mode: '0755'
+      when: ansible_facts.os_family != 'Archlinux'
+
+    - name: Install Zed for the pbox user
+      ansible.builtin.command:
+        argv: [/bin/sh, /tmp/pbox-zed-install.sh]
+        creates: /home/pbox/.local/bin/zed
+      become: true
+      become_user: pbox
+      environment:
+        HOME: /home/pbox
+      when: ansible_facts.os_family != 'Archlinux'
+
+    - name: Publish the Zed command
+      ansible.builtin.file:
+        src: "{{ '/usr/bin/zed' if ansible_facts.os_family == 'Archlinux' else '/home/pbox/.local/bin/zed' }}"
+        dest: /usr/local/bin/zed
+        state: link
+        force: true
+
+    - name: Verify Zed
+      ansible.builtin.command:
+        argv: [zed, --version]
+      changed_when: false

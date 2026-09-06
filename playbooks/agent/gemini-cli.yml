@@ -1,0 +1,15 @@
+---
+- name: Install Gemini CLI
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: agent/gemini-cli
+      software_packages:
+        Debian: [nodejs, npm]
+        Archlinux: [nodejs, npm]
+        RedHat: [nodejs, npm]
+        Suse: [nodejs, npm]
+      software_npm_packages: [{name: '@google/gemini-cli'}]
+      software_npm_bins: [gemini]
+      software_verify: [[node, --version], [gemini, --version]]

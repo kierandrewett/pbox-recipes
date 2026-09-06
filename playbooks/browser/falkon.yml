@@ -1,0 +1,13 @@
+---
+- name: Install Falkon
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: browser/falkon
+      software_packages:
+        Debian: [falkon]
+        Archlinux: [falkon]
+        RedHat: [falkon]
+        Suse: [falkon]
+      software_verify: [[falkon, --version]]

@@ -36,9 +36,12 @@ an isolated Debian container twice and verify that the second run is idempotent.
 | `workspace-tools` | role | Install a small developer tool baseline and configure the pbox project directory. |
 | `dev/base` | playbook | Install common CLI tools, compilers and build dependencies. |
 | `browser/firefox`, `browser/chromium` | playbook | Install a desktop browser. |
+| `browser/epiphany`, `browser/falkon` | playbook | Install alternative GNOME and Qt browsers. |
+| `browser/brave`, `browser/vivaldi`, `browser/zen`, `browser/helium` | playbook | Install vendor and privacy-focused browsers. |
 | `language/python`, `language/node`, `language/rust`, `language/go`, `language/java` | playbook | Install a language toolchain. |
-| `ide/neovim` | playbook | Install Neovim. |
-| `agent/codex`, `agent/claude-code` | playbook | Install a coding-agent CLI through a private npm prefix. |
+| `ide/neovim`, `ide/emacs`, `ide/helix` | playbook | Install a programmer editor or IDE. |
+| `ide/vscode`, `ide/zed` | playbook | Install Visual Studio Code or Zed. |
+| `agent/codex`, `agent/claude-code`, `agent/gemini-cli`, `agent/opencode` | playbook | Install a coding-agent CLI through a private npm prefix. |
 
 List and apply them with:
 

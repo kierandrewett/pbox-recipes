@@ -1,0 +1,84 @@
+---
+- name: Install Brave Browser
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Require a supported Brave guest family
+      ansible.builtin.assert:
+        that: ansible_facts.os_family in ['Debian', 'RedHat', 'Suse', 'Archlinux']
+        fail_msg: Brave is supported on Debian, Fedora, SUSE and Arch guests.
+
+    - name: Install Brave prerequisites on Debian
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, gpg]
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Configure Brave repository on Debian
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - {url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg, dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg}
+        - {url: https://brave-browser-apt-release.s3.brave.com/brave-browser.sources, dest: /etc/apt/sources.list.d/brave-browser-release.sources}
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Install Brave on Debian
+      ansible.builtin.apt:
+        name: brave-browser
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Configure Brave repository on Fedora
+      ansible.builtin.get_url:
+        url: https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+        dest: /etc/yum.repos.d/brave-browser.repo
+        mode: '0644'
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Install Brave on Fedora
+      ansible.builtin.dnf:
+        name: brave-browser
+        state: present
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Configure Brave repository on SUSE
+      ansible.builtin.get_url:
+        url: https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+        dest: /etc/zypp/repos.d/brave-browser.repo
+        mode: '0644'
+      when: ansible_facts.os_family == 'Suse'
+
+    - name: Install Brave on SUSE
+      ansible.builtin.command:
+        argv: [zypper, --non-interactive, install, --no-recommends, --auto-agree-with-licenses, brave-browser]
+      when: ansible_facts.os_family == 'Suse'
+      changed_when: true
+
+    - name: Check the Arch Brave package
+      ansible.builtin.command:
+        argv: [pacman, -T, brave-bin]
+      register: arch_brave
+      changed_when: false
+      failed_when: arch_brave.rc not in [0, 127]
+      when: ansible_facts.os_family == 'Archlinux'
+
+    - name: Install Brave from the Arch User Repository
+      ansible.builtin.command:
+        argv: [yay, -S, --needed, --noconfirm, brave-bin]
+      become: true
+      become_user: pbox
+      environment:
+        HOME: /home/pbox
+      when:
+        - ansible_facts.os_family == 'Archlinux'
+        - arch_brave.rc == 127
+      changed_when: true
+
+    - name: Verify Brave
+      ansible.builtin.command:
+        argv: [brave-browser, --version]
+      changed_when: false

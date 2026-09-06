@@ -1,0 +1,44 @@
+---
+- name: Install Zen Browser
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: browser/zen prerequisites
+      software_packages:
+        Debian: [curl, ca-certificates]
+        Archlinux: [curl, ca-certificates]
+        RedHat: [curl, ca-certificates]
+        Suse: [curl, ca-certificates]
+  tasks:
+    - name: Require the pbox user for the Zen installer
+      ansible.builtin.getent:
+        database: passwd
+        key: pbox
+
+    - name: Download the official Zen installer
+      ansible.builtin.get_url:
+        url: https://github.com/zen-browser/updates-server/raw/refs/heads/main/install.sh
+        dest: /tmp/pbox-zen-install.sh
+        mode: '0755'
+
+    - name: Install Zen for the pbox user
+      ansible.builtin.command:
+        argv: [/bin/sh, /tmp/pbox-zen-install.sh]
+        creates: /home/pbox/.tarball-installations/zen/zen
+      become: true
+      become_user: pbox
+      environment:
+        HOME: /home/pbox
+
+    - name: Publish the Zen command
+      ansible.builtin.file:
+        src: /home/pbox/.tarball-installations/zen/zen
+        dest: /usr/local/bin/zen
+        state: link
+        force: true
+
+    - name: Verify Zen
+      ansible.builtin.command:
+        argv: [zen, --version]
+      changed_when: false

@@ -1,0 +1,119 @@
+---
+- name: Install Visual Studio Code
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Require a supported VS Code guest family
+      ansible.builtin.assert:
+        that: ansible_facts.os_family in ['Debian', 'RedHat', 'Suse', 'Archlinux']
+        fail_msg: Visual Studio Code is supported on Debian, Fedora, SUSE and Arch guests.
+
+    - name: Install VS Code prerequisites on Debian
+      ansible.builtin.apt:
+        name: [ca-certificates, wget, gpg]
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Install the Microsoft signing key on Debian
+      ansible.builtin.get_url:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        dest: /tmp/microsoft.asc
+        mode: '0644'
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Convert the Microsoft signing key on Debian
+      ansible.builtin.command:
+        argv: [gpg, --dearmor, --yes, --output, /usr/share/keyrings/microsoft.gpg, /tmp/microsoft.asc]
+        creates: /usr/share/keyrings/microsoft.gpg
+      changed_when: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Configure the Microsoft repository on Debian
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/vscode.sources
+        mode: '0644'
+        content: |
+          Types: deb
+          URIs: https://packages.microsoft.com/repos/code
+          Suites: stable
+          Components: main
+          Architectures: amd64,arm64,armhf
+          Signed-By: /usr/share/keyrings/microsoft.gpg
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Install VS Code on Debian
+      ansible.builtin.apt:
+        name: code
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Import the Microsoft signing key on RPM guests
+      ansible.builtin.command:
+        argv: [rpm, --import, https://packages.microsoft.com/keys/microsoft.asc]
+      changed_when: false
+      when: ansible_facts.os_family in ['RedHat', 'Suse']
+
+    - name: Configure the Microsoft repository on Fedora
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/vscode.repo
+        mode: '0644'
+        content: |
+          [code]
+          name=Visual Studio Code
+          baseurl=https://packages.microsoft.com/yumrepos/vscode
+          enabled=1
+          autorefresh=1
+          type=rpm-md
+          gpgcheck=1
+          gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Install VS Code on Fedora
+      ansible.builtin.dnf:
+        name: code
+        state: present
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Configure the Microsoft repository on SUSE
+      ansible.builtin.copy:
+        dest: /etc/zypp/repos.d/vscode.repo
+        mode: '0644'
+        content: |
+          [code]
+          name=Visual Studio Code
+          baseurl=https://packages.microsoft.com/yumrepos/vscode
+          enabled=1
+          autorefresh=1
+          type=rpm-md
+          gpgcheck=1
+          gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+      when: ansible_facts.os_family == 'Suse'
+
+    - name: Install VS Code on SUSE
+      ansible.builtin.command:
+        argv: [zypper, --non-interactive, install, --no-recommends, --auto-agree-with-licenses, code]
+      when: ansible_facts.os_family == 'Suse'
+      changed_when: true
+
+    - name: Check the Arch VS Code package
+      ansible.builtin.command:
+        argv: [pacman, -T, code]
+      register: arch_code
+      changed_when: false
+      failed_when: arch_code.rc not in [0, 127]
+      when: ansible_facts.os_family == 'Archlinux'
+
+    - name: Install VS Code on Arch
+      ansible.builtin.command:
+        argv: [pacman, -Syu, --needed, --noconfirm, code]
+      when:
+        - ansible_facts.os_family == 'Archlinux'
+        - arch_code.rc == 127
+      changed_when: true
+
+    - name: Verify VS Code
+      ansible.builtin.command:
+        argv: [code, --version]
+      changed_when: false

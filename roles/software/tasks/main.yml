@@ -8,10 +8,59 @@
       {{ software_packages.keys() | join(', ') }}; this guest is
       {{ ansible_facts.distribution }} ({{ ansible_facts.os_family }}).
 
-- name: Install software packages
-  ansible.builtin.package:
+- name: Install software packages on Debian guests
+  ansible.builtin.apt:
     name: "{{ software_packages[ansible_facts.os_family] }}"
     state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Install software packages on Fedora guests
+  ansible.builtin.dnf:
+    name: "{{ software_packages[ansible_facts.os_family] }}"
+    state: present
+  when: ansible_facts.os_family == 'RedHat'
+
+- name: Check Arch software packages
+  ansible.builtin.command:
+    argv: "{{ ['pacman', '-T'] + software_packages[ansible_facts.os_family] }}"
+  register: missing_arch_software
+  changed_when: false
+  failed_when: missing_arch_software.rc not in [0, 127]
+  when: ansible_facts.os_family == 'Archlinux'
+
+- name: Install software packages on Arch guests
+  ansible.builtin.command:
+    argv: "{{ ['pacman', '-Syu', '--needed', '--noconfirm'] + software_packages[ansible_facts.os_family] }}"
+  when:
+    - ansible_facts.os_family == 'Archlinux'
+    - missing_arch_software.rc == 127
+  changed_when: true
+
+- name: Check SUSE software packages
+  ansible.builtin.command:
+    argv: [rpm, -q, "{{ item }}"]
+  loop: "{{ software_packages[ansible_facts.os_family] }}"
+  register: missing_suse_software
+  changed_when: false
+  failed_when: false
+  when: ansible_facts.os_family == 'Suse'
+
+- name: Install software packages on SUSE guests
+  ansible.builtin.command:
+    argv:
+      - zypper
+      - --non-interactive
+      - install
+      - --no-recommends
+      - --auto-agree-with-licenses
+      - "{{ item.item }}"
+  loop: "{{ missing_suse_software.results | default([]) }}"
+  when:
+    - ansible_facts.os_family == 'Suse'
+    - item.rc != 0
+  changed_when: true
 
 - name: Create the shared npm prefix
   ansible.builtin.file:

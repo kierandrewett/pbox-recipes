@@ -1,0 +1,13 @@
+---
+- name: Install Emacs
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: ide/emacs
+      software_packages:
+        Debian: [emacs-gtk]
+        Archlinux: [emacs]
+        RedHat: [emacs]
+        Suse: [emacs]
+      software_verify: [[emacs, --version]]

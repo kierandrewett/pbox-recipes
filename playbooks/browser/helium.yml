@@ -1,0 +1,89 @@
+---
+- name: Install Helium Browser
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Require a supported Helium guest family
+      ansible.builtin.assert:
+        that: ansible_facts.os_family in ['Debian', 'RedHat', 'Archlinux']
+        fail_msg: Helium is supported on Debian, Fedora and Arch guests.
+
+    - name: Install Helium prerequisites on Debian
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, gpg]
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Configure Helium repository on Debian
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - {url: https://raw.githubusercontent.com/imputnet/helium-linux/main/pubkey.asc, dest: /tmp/helium.asc}
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Convert the Helium signing key
+      ansible.builtin.command:
+        argv: [gpg, --dearmor, --yes, --output, /usr/share/keyrings/helium.gpg, /tmp/helium.asc]
+        creates: /usr/share/keyrings/helium.gpg
+      when: ansible_facts.os_family == 'Debian'
+      changed_when: true
+
+    - name: Configure the Helium apt source
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/helium.sources
+        mode: '0644'
+        content: |
+          Types: deb
+          URIs: https://pkg.helium.computer/deb
+          Suites: stable
+          Components: main
+          Architectures: amd64,arm64
+          Signed-By: /usr/share/keyrings/helium.gpg
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Install Helium on Debian
+      ansible.builtin.apt:
+        name: helium-bin
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Enable the Helium COPR on Fedora
+      ansible.builtin.command:
+        argv: [dnf, -y, copr, enable, imput/helium]
+      when: ansible_facts.os_family == 'RedHat'
+      changed_when: true
+
+    - name: Install Helium on Fedora
+      ansible.builtin.dnf:
+        name: helium-bin
+        state: present
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Check the Arch Helium package
+      ansible.builtin.command:
+        argv: [pacman, -T, helium-browser-bin]
+      register: arch_helium
+      changed_when: false
+      failed_when: arch_helium.rc not in [0, 127]
+      when: ansible_facts.os_family == 'Archlinux'
+
+    - name: Install Helium from the Arch User Repository
+      ansible.builtin.command:
+        argv: [yay, -S, --needed, --noconfirm, helium-browser-bin]
+      become: true
+      become_user: pbox
+      environment:
+        HOME: /home/pbox
+      when:
+        - ansible_facts.os_family == 'Archlinux'
+        - arch_helium.rc == 127
+      changed_when: true
+
+    - name: Verify Helium
+      ansible.builtin.command:
+        argv: [helium, --version]
+      changed_when: false

@@ -1,0 +1,15 @@
+---
+- name: Install OpenCode
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: software
+      software_name: agent/opencode
+      software_packages:
+        Debian: [nodejs, npm]
+        Archlinux: [nodejs, npm]
+        RedHat: [nodejs, npm]
+        Suse: [nodejs, npm]
+      software_npm_packages: [{name: opencode-ai}]
+      software_npm_bins: [opencode]
+      software_verify: [[node, --version], [opencode, --version]]

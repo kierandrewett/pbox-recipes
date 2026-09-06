@@ -1,0 +1,76 @@
+---
+- name: Install Vivaldi
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Require a supported Vivaldi guest family
+      ansible.builtin.assert:
+        that: ansible_facts.os_family in ['Debian', 'Archlinux']
+        fail_msg: Vivaldi currently supports Debian-family guests and Arch guests with yay.
+
+    - name: Install Vivaldi prerequisites on Debian
+      ansible.builtin.apt:
+        name: [ca-certificates, wget, gpg]
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Configure Vivaldi repository on Debian
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}"
+        mode: '0644'
+      loop:
+        - {url: https://repo.vivaldi.com/archive/linux_signing_key.pub, dest: /tmp/vivaldi.asc}
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Convert the Vivaldi signing key
+      ansible.builtin.command:
+        argv: [gpg, --dearmor, --yes, --output, /usr/share/keyrings/vivaldi.gpg, /tmp/vivaldi.asc]
+        creates: /usr/share/keyrings/vivaldi.gpg
+      when: ansible_facts.os_family == 'Debian'
+      changed_when: true
+
+    - name: Configure the Vivaldi apt source
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/vivaldi.sources
+        mode: '0644'
+        content: |
+          Types: deb
+          URIs: https://repo.vivaldi.com/stable/deb/
+          Suites: stable
+          Components: main
+          Signed-By: /usr/share/keyrings/vivaldi.gpg
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Install Vivaldi on Debian
+      ansible.builtin.apt:
+        name: vivaldi-stable
+        state: present
+        update_cache: true
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Check the Arch Vivaldi package
+      ansible.builtin.command:
+        argv: [pacman, -T, vivaldi]
+      register: arch_vivaldi
+      changed_when: false
+      failed_when: arch_vivaldi.rc not in [0, 127]
+      when: ansible_facts.os_family == 'Archlinux'
+
+    - name: Install Vivaldi from the Arch User Repository
+      ansible.builtin.command:
+        argv: [yay, -S, --needed, --noconfirm, vivaldi]
+      become: true
+      become_user: pbox
+      environment:
+        HOME: /home/pbox
+      when:
+        - ansible_facts.os_family == 'Archlinux'
+        - arch_vivaldi.rc == 127
+      changed_when: true
+
+    - name: Verify Vivaldi
+      ansible.builtin.command:
+        argv: [vivaldi, --version]
+      changed_when: false

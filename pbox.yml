@@ -61,6 +61,42 @@ recipes:
     capabilities: [desktop/browser]
     supports: [debian-family, fedora-family, arch-family, suse-family]
 
+  browser/epiphany:
+    path: playbooks/browser/epiphany.yml
+    description: Install GNOME Web (Epiphany).
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  browser/falkon:
+    path: playbooks/browser/falkon.yml
+    description: Install the Falkon Qt browser.
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  browser/brave:
+    path: playbooks/browser/brave.yml
+    description: Install Brave Browser from its official repository or Arch package.
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  browser/vivaldi:
+    path: playbooks/browser/vivaldi.yml
+    description: Install Vivaldi from its official repository or Arch package.
+    capabilities: [desktop/browser]
+    supports: [debian-family, arch-family]
+
+  browser/zen:
+    path: playbooks/browser/zen.yml
+    description: Install Zen Browser for the pbox desktop user.
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  browser/helium:
+    path: playbooks/browser/helium.yml
+    description: Install Helium Browser from its official Linux packages.
+    capabilities: [desktop/browser]
+    supports: [debian-family, fedora-family, arch-family]
+
   language/python:
     path: playbooks/language/python.yml
     description: Install Python, pip, virtual environments and development headers.
@@ -97,6 +133,30 @@ recipes:
     capabilities: [development/editor]
     supports: [debian-family, fedora-family, arch-family, suse-family]
 
+  ide/emacs:
+    path: playbooks/ide/emacs.yml
+    description: Install Emacs with a graphical desktop build where available.
+    capabilities: [development/editor]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  ide/helix:
+    path: playbooks/ide/helix.yml
+    description: Install the Helix modal editor.
+    capabilities: [development/editor]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  ide/vscode:
+    path: playbooks/ide/vscode.yml
+    description: Install Microsoft Visual Studio Code.
+    capabilities: [development/editor]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  ide/zed:
+    path: playbooks/ide/zed.yml
+    description: Install Zed from its official Linux installer or Arch package.
+    capabilities: [development/editor]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
   agent/codex:
     path: playbooks/agent/codex.yml
     description: Install the OpenAI Codex coding agent CLI.
@@ -107,6 +167,20 @@ recipes:
   agent/claude-code:
     path: playbooks/agent/claude-code.yml
     description: Install the Claude Code coding agent CLI.
+    requires: [language/node]
+    capabilities: [development/agent]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  agent/gemini-cli:
+    path: playbooks/agent/gemini-cli.yml
+    description: Install Google's Gemini CLI coding agent.
+    requires: [language/node]
+    capabilities: [development/agent]
+    supports: [debian-family, fedora-family, arch-family, suse-family]
+
+  agent/opencode:
+    path: playbooks/agent/opencode.yml
+    description: Install the OpenCode open-source coding agent.
     requires: [language/node]
     capabilities: [development/agent]
     supports: [debian-family, fedora-family, arch-family, suse-family]
