@@ -85,5 +85,5 @@
 
     - name: Verify Helium
       ansible.builtin.command:
-        argv: [helium, --version]
+        argv: [helium-browser, --version]
       changed_when: false
