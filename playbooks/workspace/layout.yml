@@ -1,0 +1,43 @@
+---
+- name: Create the standard pbox workspace layout
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Check whether the pbox development user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: pbox
+        fail_key: false
+
+    - name: Create the pbox workspace directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: pbox
+        group: pbox
+        mode: "0755"
+      loop:
+        - /home/pbox/projects
+        - /home/pbox/scratch
+        - /home/pbox/bin
+      when: getent_passwd is defined and 'pbox' in getent_passwd
+
+    - name: Create a root-owned workspace when no pbox user exists
+      ansible.builtin.file:
+        path: /var/lib/pbox/workspace
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: getent_passwd is not defined or 'pbox' not in getent_passwd
+
+    - name: Publish the workspace path for shells
+      ansible.builtin.copy:
+        dest: /etc/profile.d/pbox-workspace.sh
+        content: |
+          # Managed by the pbox workspace/layout recipe.
+          export PBOX_WORKSPACE_ROOT={{ '/home/pbox' if getent_passwd is defined and 'pbox' in getent_passwd else '/var/lib/pbox/workspace' }}
+        owner: root
+        group: root
+        mode: "0644"

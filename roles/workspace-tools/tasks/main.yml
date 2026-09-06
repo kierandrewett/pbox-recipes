@@ -1,0 +1,35 @@
+---
+- name: Install the common developer tool baseline
+  ansible.builtin.package:
+    name:
+      - ca-certificates
+      - curl
+      - git
+      - tmux
+      - vim
+    state: present
+
+- name: Check whether the pbox development user exists
+  ansible.builtin.getent:
+    database: passwd
+    key: pbox
+    fail_key: false
+
+- name: Create the pbox project directory
+  ansible.builtin.file:
+    path: /home/pbox/projects
+    state: directory
+    owner: pbox
+    group: pbox
+    mode: "0755"
+  when: getent_passwd is defined and 'pbox' in getent_passwd
+
+- name: Publish the developer tool baseline to login shells
+  ansible.builtin.copy:
+    dest: /etc/profile.d/pbox-tools.sh
+    content: |
+      # Managed by the pbox workspace-tools recipe.
+      export PBOX_TOOLS_READY=1
+    owner: root
+    group: root
+    mode: "0644"

@@ -1,0 +1,49 @@
+---
+- name: Verify the pbox agent control plane
+  hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: Check that the installed agent binary starts
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/pbox-agent
+          - --help
+      register: pbox_agent_help
+      changed_when: false
+
+    - name: Check that the agent is supervised
+      ansible.builtin.shell: |
+        set -eu
+        if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet pbox-agent.service; then
+          printf '%s\n' systemd
+        elif command -v rc-service >/dev/null 2>&1 && rc-service pbox-agent status >/dev/null 2>&1; then
+          printf '%s\n' openrc
+        elif [ -x /etc/service/pbox-agent/run ] && pgrep -f '/usr/local/bin/pbox-agent' >/dev/null 2>&1; then
+          printf '%s\n' runit
+        elif tr '\0' ' ' < /proc/1/cmdline | grep -F -- '--workspace-init' >/dev/null 2>&1; then
+          printf '%s\n' workspace
+        else
+          exit 1
+        fi
+      args:
+        executable: /bin/sh
+      register: pbox_agent_supervisor
+      changed_when: false
+
+    - name: Require the agent binary and supervisor checks to pass
+      ansible.builtin.assert:
+        that:
+          - pbox_agent_help.rc == 0
+          - pbox_agent_supervisor.rc == 0
+        fail_msg: >-
+          pbox-agent is not healthy: binary rc={{ pbox_agent_help.rc }},
+          supervisor rc={{ pbox_agent_supervisor.rc }}.
+
+    - name: Report the authenticated guest control plane
+      ansible.builtin.debug:
+        msg:
+          box_hostname: "{{ ansible_hostname }}"
+          architecture: "{{ ansible_architecture }}"
+          agent_supervisor: "{{ pbox_agent_supervisor.stdout | trim }}"
+          agent_binary: /usr/local/bin/pbox-agent

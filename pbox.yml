@@ -1,0 +1,29 @@
+recipes:
+  agent/health:
+    path: playbooks/agent/health.yml
+    description: Verify the pbox agent binary and its guest service or workspace supervisor.
+    capabilities:
+      - agent/diagnostics
+    supports:
+      - systemd
+      - openrc
+      - runit
+      - workspace
+
+  workspace/layout:
+    path: playbooks/workspace/layout.yml
+    description: Create the standard pbox project, scratch, and user-bin directories.
+    capabilities:
+      - workspace/layout
+    supports:
+      - linux
+
+  workspace-tools:
+    description: Install common developer tools and prepare the pbox project directory.
+    capabilities:
+      - workspace/developer-tools
+    supports:
+      - debian-family
+      - fedora-family
+      - arch-family
+      - suse-family
