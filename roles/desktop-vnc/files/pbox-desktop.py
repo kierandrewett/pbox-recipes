@@ -10,15 +10,49 @@ import re
 import shutil
 import signal
 import socket
+import struct
 import subprocess
 import sys
 import time
 
 
+def recv_exact(sock, size):
+    data = bytearray()
+    while len(data) < size:
+        chunk = sock.recv(size - len(data))
+        if not chunk:
+            return None
+        data.extend(chunk)
+    return bytes(data)
+
+
 def probe(port):
     try:
         with socket.create_connection(('127.0.0.1', port), timeout=1) as sock:
-            return sock.recv(12).startswith(b'RFB ')
+            server_version = recv_exact(sock, 12)
+            if not server_version or not server_version.startswith(b'RFB '):
+                return False
+            sock.sendall(server_version)
+
+            if server_version.startswith(b'RFB 003.003'):
+                security_type = struct.unpack('>I', recv_exact(sock, 4))[0]
+                if security_type != 1:
+                    return False
+            else:
+                count = recv_exact(sock, 1)
+                if not count:
+                    return False
+                security_types = recv_exact(sock, count[0])
+                if not security_types or 1 not in security_types:
+                    return False
+                sock.sendall(b'\x01')
+                if recv_exact(sock, 4) != b'\x00\x00\x00\x00':
+                    return False
+
+            # Complete the handshake so Xvnc does not record this health check
+            # as an authentication failure.
+            sock.sendall(b'\x01')
+            return recv_exact(sock, 24) is not None
     except OSError:
         return False
 
