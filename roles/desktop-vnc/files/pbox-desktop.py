@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import pwd
 import re
+import shutil
 import signal
 import socket
 import subprocess
@@ -34,7 +35,7 @@ def supervise(state, session, config, display):
         raise SystemExit(0)
     signal.signal(signal.SIGTERM, stop)
     try:
-        x = subprocess.Popen(['Xtigervnc', f':{display}', '-localhost', '-interface', '127.0.0.1',
+        x = subprocess.Popen([shutil.which('Xtigervnc') or shutil.which('Xvnc') or 'Xtigervnc', f':{display}', '-localhost', '-interface', '127.0.0.1',
                               '-SecurityTypes', 'None', '-geometry', '1600x900', '-depth', '24',
                               '-nolisten', 'tcp', '-AlwaysShared', '-desktop', session])
         for _ in range(100):

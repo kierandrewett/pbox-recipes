@@ -6,4 +6,5 @@
     - role: desktop-vnc
       desktop_session: mate
       desktop_packages: ["mate-desktop-environment-core","mate-terminal"]
+      desktop_arch_packages: ["mate-session-manager", "mate-panel", "mate-settings-daemon", "mate-control-center", "marco", "caja", "mate-terminal"]
       desktop_argv: ["mate-session"]

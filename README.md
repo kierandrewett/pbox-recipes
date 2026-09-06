@@ -7,7 +7,9 @@ Recipes run on the controller through pbox's authenticated guest agent. The agen
 ## Recipes
 
 Desktop recipes install the environment, TigerVNC and a persistent session launcher.
-They currently target Debian and Ubuntu guests. Apply `desktop/xfce`,
+They target Debian, Ubuntu, Arch Linux and CachyOS guests.
+Arch installation performs a full package upgrade when dependencies are missing,
+as required to avoid unsupported partial upgrades. Apply `desktop/xfce`,
 `desktop/mate` or `desktop/lxqt`, then run `pbox desktop BOX --session xfce`
 (substitute the chosen session). When only one desktop is installed the session
 flag is optional. Install TigerVNC viewer on the controller to open a native window.

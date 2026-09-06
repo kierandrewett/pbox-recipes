@@ -6,4 +6,5 @@
     - role: desktop-vnc
       desktop_session: lxqt
       desktop_packages: ["lxqt-core","qterminal","openbox","breeze-icon-theme"]
+      desktop_arch_packages: ["lxqt-session", "lxqt-panel", "lxqt-config", "lxqt-runner", "pcmanfm-qt", "qterminal", "openbox", "breeze-icons"]
       desktop_argv: ["startlxqt"]

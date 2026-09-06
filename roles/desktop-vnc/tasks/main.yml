@@ -1,8 +1,8 @@
 ---
 - name: Require a supported desktop package family
   ansible.builtin.assert:
-    that: ansible_facts.os_family == 'Debian'
-    fail_msg: These desktop recipes currently support Debian and Ubuntu guests.
+    that: ansible_facts.os_family in ['Debian', 'Archlinux']
+    fail_msg: Desktop {{ desktop_session }} supports Debian, Ubuntu, Arch Linux and CachyOS; this guest is {{ ansible_facts.distribution }} ({{ ansible_facts.os_family }}).
 
 - name: Install desktop and VNC dependencies without starting display managers
   ansible.builtin.apt:
@@ -12,6 +12,29 @@
     cache_valid_time: 3600
     install_recommends: false
     policy_rc_d: 101
+
+  when: ansible_facts.os_family == 'Debian'
+
+- name: Select Arch desktop packages
+  ansible.builtin.set_fact:
+    arch_desktop_packages: "{{ desktop_arch_packages + ['tigervnc', 'dbus', 'xorg-xdpyinfo', 'xorg-xauth', 'ttf-dejavu', 'python'] }}"
+  when: ansible_facts.os_family == 'Archlinux'
+
+- name: Check for missing Arch desktop packages
+  ansible.builtin.command:
+    argv: "{{ ['pacman', '-T'] + arch_desktop_packages }}"
+  register: missing_desktop_packages
+  changed_when: false
+  failed_when: missing_desktop_packages.rc not in [0, 127]
+  when: ansible_facts.os_family == 'Archlinux'
+
+- name: Install desktop and VNC on Arch Linux
+  ansible.builtin.command:
+    argv: "{{ ['pacman', '-Syu', '--needed', '--noconfirm'] + arch_desktop_packages }}"
+  when:
+    - ansible_facts.os_family == 'Archlinux'
+    - missing_desktop_packages.rc == 127
+  changed_when: true
 
 - name: Require the development account
   ansible.builtin.getent:
