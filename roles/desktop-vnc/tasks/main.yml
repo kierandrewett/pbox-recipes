@@ -42,6 +42,25 @@
     dest: /usr/local/bin/pbox-desktop
     mode: '0755'
 
+- name: Create LXQt settings directory
+  ansible.builtin.file:
+    path: /home/pbox/.config/lxqt
+    state: directory
+    owner: pbox
+    group: "{{ getent_passwd.pbox[2] }}"
+    mode: '0755'
+  when: desktop_session == 'lxqt'
+
+- name: Select Openbox for the managed LXQt session
+  ansible.builtin.copy:
+    dest: /home/pbox/.config/lxqt/session.conf
+    content: "[General]\nwindow_manager=openbox\n"
+    owner: pbox
+    group: "{{ getent_passwd.pbox[2] }}"
+    mode: '0644'
+    force: false
+  when: desktop_session == 'lxqt'
+
 - name: Verify the desktop starts and accepts VNC connections
   ansible.builtin.command:
     argv: [/usr/local/bin/pbox-desktop, --session, "{{ desktop_session }}"]
