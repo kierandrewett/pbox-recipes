@@ -1,0 +1,9 @@
+---
+- name: Install the xfce desktop with VNC
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: desktop-vnc
+      desktop_session: xfce
+      desktop_packages: ["xfce4","xfce4-terminal"]
+      desktop_argv: ["startxfce4"]

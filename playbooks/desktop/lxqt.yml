@@ -1,0 +1,9 @@
+---
+- name: Install the lxqt desktop with VNC
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: desktop-vnc
+      desktop_session: lxqt
+      desktop_packages: ["lxqt-core","qterminal","openbox"]
+      desktop_argv: ["startlxqt"]

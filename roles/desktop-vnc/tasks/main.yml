@@ -1,0 +1,48 @@
+---
+- name: Require a supported desktop package family
+  ansible.builtin.assert:
+    that: ansible_facts.os_family == 'Debian'
+    fail_msg: These desktop recipes currently support Debian and Ubuntu guests.
+
+- name: Install desktop and VNC dependencies without starting display managers
+  ansible.builtin.apt:
+    name: "{{ desktop_packages + ['tigervnc-standalone-server', 'dbus-x11', 'x11-utils', 'xauth', 'fonts-dejavu-core', 'python3'] }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    install_recommends: false
+    policy_rc_d: 101
+
+- name: Require the development account
+  ansible.builtin.getent:
+    database: passwd
+    key: pbox
+
+- name: Create desktop session registration directory
+  ansible.builtin.file:
+    path: /etc/pbox/desktops
+    state: directory
+    mode: '0755'
+
+- name: Validate desktop recipe variables
+  ansible.builtin.assert:
+    that:
+      - desktop_session is defined
+      - desktop_argv is defined
+
+- name: Register the desktop startup command
+  ansible.builtin.copy:
+    dest: "/etc/pbox/desktops/{{ desktop_session }}.json"
+    content: "{{ {'argv': desktop_argv} | to_json }}\n"
+    mode: '0644'
+
+- name: Install the persistent desktop launcher
+  ansible.builtin.copy:
+    src: pbox-desktop.py
+    dest: /usr/local/bin/pbox-desktop
+    mode: '0755'
+
+- name: Verify the desktop starts and accepts VNC connections
+  ansible.builtin.command:
+    argv: [/usr/local/bin/pbox-desktop, --session, "{{ desktop_session }}"]
+  changed_when: false

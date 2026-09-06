@@ -1,0 +1,9 @@
+---
+- name: Install the mate desktop with VNC
+  hosts: all
+  gather_facts: true
+  roles:
+    - role: desktop-vnc
+      desktop_session: mate
+      desktop_packages: ["mate-desktop-environment-core","mate-terminal"]
+      desktop_argv: ["mate-session"]

@@ -1,4 +1,19 @@
 recipes:
+  desktop/xfce:
+    description: XFCE desktop with a persistent VNC session.
+    supports: [debian, ubuntu]
+    capabilities: [desktop]
+    desktop: {protocol: vnc, host: 127.0.0.1}
+  desktop/mate:
+    description: MATE desktop with a persistent VNC session.
+    supports: [debian, ubuntu]
+    capabilities: [desktop]
+    desktop: {protocol: vnc, host: 127.0.0.1}
+  desktop/lxqt:
+    description: LXQt desktop with a persistent VNC session.
+    supports: [debian, ubuntu]
+    capabilities: [desktop]
+    desktop: {protocol: vnc, host: 127.0.0.1}
   agent/health:
     path: playbooks/agent/health.yml
     description: Verify the pbox agent binary and its guest service or workspace supervisor.
