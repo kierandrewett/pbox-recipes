@@ -95,6 +95,15 @@
         RUSTUP_HOME: "{{ rustup_home }}"
         CARGO_HOME: "{{ cargo_home }}"
 
+    - name: Install Rust formatting and lint components
+      ansible.builtin.command:
+        argv: ["{{ rustup_bin }}", component, add, rustfmt, clippy, --toolchain, stable]
+      register: rust_components
+      changed_when: "'is up to date' not in rust_components.stdout"
+      environment:
+        RUSTUP_HOME: "{{ rustup_home }}"
+        CARGO_HOME: "{{ cargo_home }}"
+
     - name: Publish the shared Rust environment
       ansible.builtin.copy:
         dest: /etc/profile.d/pbox-rust.sh
