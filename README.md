@@ -1,67 +1,201 @@
 # pbox recipes
 
-Small, distro-aware Ansible recipes for boxes managed by [pbox](https://github.com/kierandrewett/pbox).
+Ansible recipes for installing tools in [pbox](https://github.com/kierandrewett/pbox)
+environments.
 
-Recipes run on the controller through pbox's authenticated guest agent. The agent must already be installed and reachable; recipes are the configuration layer after box creation, not the agent bootstrap layer.
+[Get started](#get-started) · [Catalogue](#catalogue) ·
+[Guest support](#guest-support) · [Troubleshooting](#troubleshooting) ·
+[Contributing](CONTRIBUTING.md)
 
-## Recipes
+## Get started
 
-Desktop recipes install the environment, TigerVNC and a persistent session launcher.
-They target Debian, Ubuntu, Arch Linux and CachyOS guests.
-Arch installation performs a full package upgrade when dependencies are missing,
-as required to avoid unsupported partial upgrades. Apply `desktop/xfce`,
-`desktop/mate` or `desktop/lxqt`, then run `pbox desktop BOX --session xfce`
-(substitute the chosen session). When only one desktop is installed the session
-flag is optional. Install TigerVNC viewer on the controller to open a native window.
-Closing the viewer preserves the desktop; logging out ends the session.
-VNC binds guest loopback without a password; remote access uses the authenticated
-agent tunnel. Other processes within the guest/controller share local access.
+Start with a [running box](https://github.com/kierandrewett/pbox#quick-start)
+and a reachable agent, plus
+[Ansible](https://docs.ansible.com/projects/ansible/latest/installation_guide/intro_installation.html)
+and [Git](https://git-scm.com/downloads) installed on the machine running the CLI.
 
-`desktop-vnc` is a shared Ansible role used by these playbooks, requiring
-`desktop_session`, `desktop_packages` and `desktop_argv`; apply the named desktop
-playbooks rather than the supporting role directly.
-
-Run `sh scripts/test-desktops.sh` to install all three desktops in an isolated
-Debian container, verify startup and reconnection, and require a second Ansible
-apply to report zero changes. It uses no privileged container options or host
-display mounts and removes its own container on exit.
-
-Run `sh scripts/test-software.sh` to install the language and editor recipes in
-an isolated Debian container twice and verify that the second run is idempotent.
-
-| ID | Kind | Purpose |
-| --- | --- | --- |
-| `agent/health` | playbook | Verify the installed agent binary and its service or workspace supervisor. |
-| `workspace/layout` | playbook | Create the standard pbox project, scratch, and user-bin directories. |
-| `workspace-tools` | role | Install a small developer tool baseline and configure the pbox project directory. |
-| `dev/base` | playbook | Install common CLI tools, compilers and build dependencies. |
-| `browser/firefox`, `browser/chromium` | playbook | Install a desktop browser. |
-| `browser/epiphany`, `browser/falkon` | playbook | Install alternative GNOME and Qt browsers. |
-| `browser/brave`, `browser/vivaldi`, `browser/zen`, `browser/helium` | playbook | Install vendor and privacy-focused browsers. |
-| `language/python`, `language/node`, `language/rust`, `language/go`, `language/java` | playbook | Install a language toolchain. |
-| `ide/neovim`, `ide/emacs`, `ide/helix` | playbook | Install a programmer editor or IDE. |
-| `ide/vscode`, `ide/zed` | playbook | Install Visual Studio Code or Zed. |
-| `agent/codex`, `agent/claude-code`, `agent/gemini-cli`, `agent/opencode` | playbook | Install a coding-agent CLI through a private npm prefix. |
-
-List and apply them with:
-
-```text
-pbox recipe sync
+```sh
 pbox recipe list
-pbox recipe apply agent/health --box-id pbx_...
-pbox recipe apply workspace/layout --box-id pbx_...
-pbox recipe apply workspace-tools --box-id pbx_...
-pbox recipe apply dev/base --box-id pbx_...
-pbox recipe apply language/rust --box-id pbx_...
-pbox recipe apply agent/codex --box-id pbx_...
+pbox recipe info language/rust
+pbox recipe apply --box-id current dev/base language/rust
+pbox ssh current
 ```
 
-The recipes are deliberately composable. For example, apply `dev/base`,
-`language/rust`, `language/node`, `ide/neovim` and `agent/codex` separately so a
-box receives only the tools it needs. The coding-agent recipes install Node.js
-and npm as prerequisites and place npm packages under `/opt/pbox/npm`; command
-shims are published in `/usr/local/bin`.
+`current` selects the only box. With several boxes, use its ID or unique name.
+Pbox downloads this repository automatically; no manual clone or Ansible
+inventory is needed.
 
-The recipes intentionally avoid installing or restarting `pbox-agent`. That service is part of the box control plane and is bootstrapped by `pbox new`; changing it from a recipe would remove the transport needed to run the recipe itself.
+Recipes run in the order given. After installing tools, open a new shell to pick
+up any added environment settings.
 
-Recipes are trusted controller-side code. Review changes before applying them to a box.
+### Example setups
+
+| Setup | Apply |
+| --- | --- |
+| Rust with a terminal editor | `pbox recipe apply --box-id current dev/base language/rust ide/neovim` |
+| Node.js with a coding agent | `pbox recipe apply --box-id current dev/base language/node agent/codex` |
+| Desktop with browser and IDE | `pbox recipe apply --box-id current desktop/xfce browser/firefox ide/vscode` |
+
+For the desktop setup, install [TigerVNC viewer](https://tigervnc.org/) locally,
+then run:
+
+```sh
+pbox desktop current
+```
+
+Coding-agent recipes install the programs and their runtime dependencies.
+Complete the provider's authentication inside the box when you first run the
+agent. Graphical IDEs and browsers need a running desktop session.
+
+## Catalogue
+
+Recipe IDs link to their playbooks so you can see what each installs.
+
+### Development tools and languages
+
+| Recipe | Installs |
+| --- | --- |
+| [dev/base](playbooks/dev/base.yml) | Git, curl, ripgrep, tmux, archive tools, compilers and build dependencies |
+| [language/python](playbooks/language/python.yml) | Python, pip and distribution-specific development packages |
+| [language/node](playbooks/language/node.yml) | Node.js and npm |
+| [language/rust](playbooks/language/rust.yml) | rustup, stable Rust, Cargo, rustfmt and Clippy |
+| [language/go](playbooks/language/go.yml) | Go |
+| [language/java](playbooks/language/java.yml) | JDK with java and javac |
+
+Most languages use the guest distribution's packages, so versions depend on its
+repositories. Rust uses rustup and a shared, root-owned installation under
+`/opt/pbox/rustup` and `/opt/pbox/cargo`. It is not a per-user rustup installation.
+
+### Editors and IDEs
+
+| Recipe | Installs |
+| --- | --- |
+| [ide/vscode](playbooks/ide/vscode.yml) | Visual Studio Code vendor packages; the Arch path uses its distribution `code` package |
+| [ide/zed](playbooks/ide/zed.yml) | Zed; Arch package or upstream installer for the `pbox` user |
+| [ide/neovim](playbooks/ide/neovim.yml) | Neovim |
+| [ide/emacs](playbooks/ide/emacs.yml) | Emacs |
+| [ide/helix](playbooks/ide/helix.yml) | Helix (`hx`) |
+
+### Coding agents
+
+| Recipe | Command |
+| --- | --- |
+| [agent/codex](playbooks/agent/codex.yml) | `codex` |
+| [agent/claude-code](playbooks/agent/claude-code.yml) | `claude` |
+| [agent/gemini-cli](playbooks/agent/gemini-cli.yml) | `gemini` |
+| [agent/opencode](playbooks/agent/opencode.yml) | `opencode` |
+
+These install Node.js/npm prerequisites and npm packages under `/opt/pbox/npm`.
+Commands are made available in `/usr/local/bin`. Reapplying installs missing
+npm packages; it does not automatically upgrade every installed agent.
+
+These coding agents are separate from **pbox-agent**, which provides access to
+the box. Pbox installs that service during box creation.
+
+### Browsers
+
+| Recipe | Browser |
+| --- | --- |
+| [browser/firefox](playbooks/browser/firefox.yml) | Firefox |
+| [browser/chromium](playbooks/browser/chromium.yml) | Chromium |
+| [browser/brave](playbooks/browser/brave.yml) | Brave |
+| [browser/vivaldi](playbooks/browser/vivaldi.yml) | Vivaldi |
+| [browser/zen](playbooks/browser/zen.yml) | Zen Browser |
+| [browser/helium](playbooks/browser/helium.yml) | Helium |
+| [browser/epiphany](playbooks/browser/epiphany.yml) | GNOME Web |
+| [browser/falkon](playbooks/browser/falkon.yml) | Falkon |
+
+Vendor browsers can add repositories or run upstream installers. Arch paths for
+Brave, Vivaldi and Helium use `yay` as the `pbox` user when the package is
+missing; that user and AUR helper must already exist.
+
+### Desktops
+
+| Recipe | Session name |
+| --- | --- |
+| [desktop/xfce](playbooks/desktop/xfce.yml) | `xfce` |
+| [desktop/mate](playbooks/desktop/mate.yml) | `mate` |
+| [desktop/lxqt](playbooks/desktop/lxqt.yml) | `lxqt` |
+
+Each installs its desktop, TigerVNC and a persistent session launcher.
+When several desktops are installed, select one:
+
+```sh
+pbox desktop current --session lxqt
+```
+
+Closing the viewer preserves applications. Logging out ends the session;
+stopping the box ends all sessions. The supplied sessions use X11.
+See [pbox desktop help](https://github.com/kierandrewett/pbox/blob/main/docs/desktop.md).
+
+### Workspace and diagnostics
+
+| Recipe | Purpose |
+| --- | --- |
+| [workspace/layout](playbooks/workspace/layout.yml) | Create projects, scratch and user-bin directories; use a root-owned fallback if no `pbox` user exists |
+| [agent/health](playbooks/agent/health.yml) | Check the installed pbox-agent binary and its supervisor |
+| [workspace-tools](roles/workspace-tools/tasks/main.yml) | Older small baseline role: curl, Git, tmux, Vim and workspace setup |
+
+Use `dev/base` for the current distribution-specific development baseline.
+`agent/health` needs a working agent connection to run; it cannot repair a
+disconnected agent.
+
+## Guest support
+
+| Recipes | Guest families targeted by the current playbooks |
+| --- | --- |
+| General software, languages, editors and coding agents | Debian/Ubuntu, Arch/CachyOS, Red Hat/Fedora and SUSE |
+| Desktop recipes | Debian/Ubuntu and Arch/CachyOS |
+| Vivaldi | Debian/Ubuntu and Arch/CachyOS |
+| Helium | Debian/Ubuntu, Red Hat/Fedora and Arch/CachyOS |
+
+Family support is not a guarantee for every distribution release or CPU
+architecture. Packages, vendor repositories and upstream installers must support
+the actual guest. Check [the manifest](pbox.yml) and the linked playbook before
+choosing a recipe.
+
+- Desktops and Zen require the `pbox` account. Zed's non-Arch installer also uses it.
+- Installing missing Arch dependencies can perform a full system upgrade.
+- Alpine can run a compatible pbox agent, but most software recipes here do not
+  provide Alpine package mappings.
+
+## Refresh recipes
+
+```sh
+pbox recipe sync
+pbox recipe search browser
+```
+
+`sync` updates the local recipe checkout. It does not update software in boxes.
+For a different repository revision:
+
+```sh
+pbox config set recipes.ref main
+pbox recipe sync
+```
+
+## Troubleshooting
+
+| Problem | Next step |
+| --- | --- |
+| `ansible-playbook` missing | Install Ansible on the machine running pbox |
+| Guest Python missing | Install `python3` in the guest if pbox's preparation cannot provide it |
+| Unsupported distribution | Read the playbook's package-family check and select a supported recipe/image |
+| `yay` or `pbox` user missing | Prepare the prerequisites for that Arch vendor recipe |
+| Command unavailable in an existing shell | Reconnect with `pbox ssh BOX` to reload login environment settings |
+| Recipe task failed | Read the reported log or rerun with `--verbose` |
+| Agent connection failed | Use pbox's connection/repair commands before applying recipes |
+
+```sh
+pbox --verbose recipe apply --box-id current dev/base
+```
+
+Recipes can change the guest with root privileges and execute Ansible code
+locally. Review the source you choose to run. Pbox's
+[rollback policy](https://github.com/kierandrewett/pbox/blob/main/docs/recipes.md#rollback-and-storage)
+depends on Proxmox storage support; without a checkpoint, failures can leave
+partial changes.
+
+[Report a recipe issue](https://github.com/kierandrewett/pbox-recipes/issues)
+with the recipe ID, guest distribution/version, architecture and relevant error.
+Remove credentials from logs before sharing.
