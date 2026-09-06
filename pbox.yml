@@ -111,7 +111,7 @@ recipes:
 
   language/rust:
     path: playbooks/language/rust.yml
-    description: Install the Rust compiler, Cargo and formatting tools.
+    description: Install rustup with the stable Rust toolchain, Cargo, rustfmt and clippy.
     capabilities: [development/rust]
     supports: [debian-family, fedora-family, arch-family, suse-family]
 

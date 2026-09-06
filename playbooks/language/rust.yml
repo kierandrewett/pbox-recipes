@@ -1,13 +1,120 @@
 ---
-- name: Install Rust development tools
+- name: Install Rust with rustup
   hosts: all
   gather_facts: true
-  roles:
-    - role: software
-      software_name: language/rust
-      software_packages:
-        Debian: [rustc, cargo, rustfmt]
-        Archlinux: [rust]
-        RedHat: [rust, cargo, rustfmt]
-        Suse: [rust, cargo]
-      software_verify: [[rustc, --version], [cargo, --version]]
+  vars:
+    rustup_home: /opt/pbox/rustup
+    cargo_home: /opt/pbox/cargo
+    rustup_url: https://sh.rustup.rs
+    rustup_bin: /opt/pbox/cargo/bin/rustup
+  tasks:
+    - name: Require a supported guest package family
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family in ['Debian', 'Archlinux', 'RedHat', 'Suse']
+        fail_msg: >-
+          language/rust supports Debian, Ubuntu, Arch, Fedora, RHEL,
+          openSUSE and SUSE guests; this guest is
+          {{ ansible_facts.distribution }} ({{ ansible_facts.os_family }}).
+
+    - name: Install rustup prerequisites on Debian guests
+      ansible.builtin.apt:
+        name: [ca-certificates, curl]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_facts.os_family == 'Debian'
+
+    - name: Install rustup prerequisites on Arch guests
+      ansible.builtin.command:
+        argv: [pacman, -Syu, --needed, --noconfirm, ca-certificates, curl]
+      when:
+        - ansible_facts.os_family == 'Archlinux'
+        - ansible_facts.pkg_mgr == 'pacman'
+      changed_when: true
+
+    - name: Install rustup prerequisites on RedHat guests
+      ansible.builtin.dnf:
+        name: [ca-certificates, curl]
+        state: present
+      when: ansible_facts.os_family == 'RedHat'
+
+    - name: Install rustup prerequisites on SUSE guests
+      ansible.builtin.command:
+        argv: [zypper, --non-interactive, install, --no-recommends, --auto-agree-with-licenses, ca-certificates, curl]
+      when: ansible_facts.os_family == 'Suse'
+      changed_when: true
+
+    - name: Create the shared Rust directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "{{ rustup_home }}"
+        - "{{ cargo_home }}"
+
+    - name: Download the rustup installer
+      ansible.builtin.get_url:
+        url: "{{ rustup_url }}"
+        dest: /tmp/pbox-rustup-init.sh
+        mode: '0755'
+        force: false
+
+    - name: Install rustup and the stable toolchain
+      ansible.builtin.command:
+        argv:
+          - /tmp/pbox-rustup-init.sh
+          - -y
+          - --no-modify-path
+          - --default-toolchain
+          - stable
+          - --profile
+          - minimal
+        creates: "{{ rustup_bin }}"
+      environment:
+        RUSTUP_HOME: "{{ rustup_home }}"
+        CARGO_HOME: "{{ cargo_home }}"
+
+    - name: Check the stable Rust toolchain
+      ansible.builtin.command:
+        argv: ["{{ rustup_bin }}", toolchain, list]
+      register: rustup_toolchains
+      changed_when: false
+      environment:
+        RUSTUP_HOME: "{{ rustup_home }}"
+        CARGO_HOME: "{{ cargo_home }}"
+
+    - name: Install stable when the installer did not provide it
+      ansible.builtin.command:
+        argv: ["{{ rustup_bin }}", toolchain, install, stable, --profile, minimal]
+      when: "'stable' not in rustup_toolchains.stdout"
+      environment:
+        RUSTUP_HOME: "{{ rustup_home }}"
+        CARGO_HOME: "{{ cargo_home }}"
+
+    - name: Publish the shared Rust environment
+      ansible.builtin.copy:
+        dest: /etc/profile.d/pbox-rust.sh
+        content: |
+          # Managed by the pbox language recipes.
+          export RUSTUP_HOME=/opt/pbox/rustup
+          export CARGO_HOME=/opt/pbox/cargo
+          export PATH=/opt/pbox/cargo/bin:$PATH
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Verify rustup and the Rust toolchain
+      ansible.builtin.command:
+        argv: "{{ item }}"
+      loop:
+        - ["{{ rustup_bin }}", --version]
+        - ["{{ cargo_home }}/bin/rustc", --version]
+        - ["{{ cargo_home }}/bin/cargo", --version]
+        - ["{{ cargo_home }}/bin/rustfmt", --version]
+      environment:
+        RUSTUP_HOME: "{{ rustup_home }}"
+        CARGO_HOME: "{{ cargo_home }}"
