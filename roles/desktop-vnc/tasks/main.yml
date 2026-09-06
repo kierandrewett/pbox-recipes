@@ -43,7 +43,7 @@
 
 - name: Create desktop session registration directory
   ansible.builtin.file:
-    path: /etc/pbox/desktops
+    path: /etc/pbox-desktops
     state: directory
     mode: '0755'
 
@@ -55,7 +55,7 @@
 
 - name: Register the desktop startup command
   ansible.builtin.copy:
-    dest: "/etc/pbox/desktops/{{ desktop_session }}.json"
+    dest: "/etc/pbox-desktops/{{ desktop_session }}.json"
     content: "{{ {'argv': desktop_argv} | to_json }}\n"
     mode: '0644'
 

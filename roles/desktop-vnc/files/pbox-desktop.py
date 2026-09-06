@@ -72,7 +72,7 @@ def main():
     parser.add_argument('--session')
     parser.add_argument('--supervise', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
-    sessions = sorted(p.stem for p in Path('/etc/pbox/desktops').glob('*.json'))
+    sessions = sorted(p.stem for p in Path('/etc/pbox-desktops').glob('*.json'))
     session = args.session or (sessions[0] if len(sessions) == 1 else None)
     if session not in sessions or not re.fullmatch(r'[a-z0-9-]+', session or ''):
         raise RuntimeError('Choose --session from: ' + ', '.join(sessions))
@@ -97,7 +97,7 @@ def main():
             allocation.write_text(json.dumps(displays))
         display = displays[session]
     port = 5900 + display
-    config = json.loads((Path('/etc/pbox/desktops') / (session + '.json')).read_text())
+    config = json.loads((Path('/etc/pbox-desktops') / (session + '.json')).read_text())
     if args.supervise:
         with (state / 'supervisor.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
